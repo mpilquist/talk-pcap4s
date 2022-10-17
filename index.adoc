@@ -1,0 +1,140 @@
+= Cross platform applications with Scala Native
+:source-highlighter: highlightjs
+:highlightjs-languages: scala
+:highlightjs-theme: css/solarized-dark.css
+:revealjs_theme: moon
+:revealjs_hash: true
+:customcss: css/presentation.css
+:icons: font
+
+image::images/fs2-logo.png[]
+
+== Agenda
+- hexdump4s
+- intro to scala native
+- udp-replay
+- libpcap
+- tcpdump4s
+
+== hexdump4s
+
+- show repl output
+- build command line app
+
+=== Hex Dumps
+
+image::images/print-hex-dump.png[]
+
+=== CLI Hex Dumps
+
+[source,scala]
+----
+//> using scala "3.2.0"
+//> using lib "org.scodec::scodec-bits::1.1.34"
+//> using lib "com.monovore::decline::2.3.1"
+----
+
+=== CLI Hex Dumps
+
+[source,scala]
+----
+val command = Command(
+  name = "hexdump4s",
+  header = "Prints a hex dump of a file"
+) {
+  val offset = Opts.option[Long](
+    "offset", short = "s", metavar = "count",
+    help = "Number of bytes to skip at start of input"
+  ).withDefault(0L)
+  val length = Opts.option[Long](
+    "length", short = "n", metavar = "count",
+    help = "Number of bytes to dump").orNone
+  val noColor = Opts.flag(
+    "no-color", help = "Disables color ouptut").orFalse
+  val file = Opts.argument[Path](metavar = "file").orNone
+  (offset, length, noColor, file).tupled
+}
+----
+
+=== CLI Hex Dumps
+
+[source,scala]
+----
+command.parse(args) match
+  case Left(help) =>
+    System.err.println(help)
+  case Right((offset, limit, noColor, file)) =>
+    def data: BitVector =
+      val source = BitVector.fromInputStream(
+        file.map(f => Files.newInputStream(f))
+            .getOrElse(System.in))
+      source.drop(offset * 8L)
+    HexDumpFormat.Default
+      .withAnsi(!noColor)
+      .withAddressOffset(offset.toInt)
+      .withLengthLimit(limit.getOrElse(Long.MaxValue))
+      .print(data)
+----
+
+=== CLI Hex Dumps
+
+[source]
+----
+➜  scala-cli hexdump4s.sc -- -help
+Usage: hexdump4s [--offset <count>] [--length <count>] [--no-color] [<file>]
+
+Prints a hex dump of a file
+
+Options and flags:
+    --help
+        Display this help text.
+    --offset <count>, -s <count>
+        Number of bytes to skip at start of input
+    --length <count>, -n <count>
+        Number of bytes to dump
+    --no-color
+        Disables color ouptut
+----
+
+=== CLI Hex Dumps
+
+image::images/hexdump-cli.png[]
+
+=== Packaging as JVM App
+
+[source]
+----
+➜  scala-cli package hexdump4s.sc -o hexdump4s -f --assembly
+
+➜  du -h hexdump4s
+ 17M	hexdump4s
+----
+
+=== Packaging as JVM App
+
+[source]
+----
+➜  time ./hexdump4s LICENSE > /dev/null
+
+________________________________________________________
+Executed in  810.57 millis    fish           external
+   usr time  925.87 millis    0.24 millis  925.64 millis
+   sys time  157.68 millis    6.49 millis  151.19 millis
+----
+
+=== Packaging as Native App
+
+[source]
+----
+➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
+
+➜  du -h hexdump4s
+8.3M	hexdump4s
+
+➜  time ./hexdump4s LICENSE > /dev/null
+
+________________________________________________________
+Executed in   61.50 millis    fish           external
+   usr time   35.84 millis    0.20 millis   35.63 millis
+   sys time   20.09 millis    5.10 millis   14.99 millis
+----
