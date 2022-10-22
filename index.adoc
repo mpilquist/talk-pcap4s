@@ -259,25 +259,135 @@ struct pcap_if {
 ----
 /** Exposes libpcap API via Scala Native. */
 object libpcap:
-  opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
-  object pcap_if:
-    given _tag: Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
-    extension (struct: pcap_if)
-      def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
-      def name: CString = struct._2
-      def description: CString = struct._3
-      def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
-      def flags: CUnsignedInt = struct._5
+  object types:
+    opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+    object pcap_if:
+      given Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+      extension (struct: pcap_if)
+        def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
+        def name: CString = struct._2
+        def description: CString = struct._3
+        def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
+        def flags: CUnsignedInt = struct._5
 ----
 
 === CStructN
 
-TODO
+* C aligned struct of n elements
+* Positional access, not named access (yet)
+* opaque type + extension methods pattern
+** `Tag` instance allows pointer dereferencing
+   (necessary because of opaqueness)
+** Can add mutators in addition to accessors
 
-- C-aligned struct of N element types
-- Positional access
-- opaque type + extension method pattern
-- tags
+=== findalldevs
+
+[source,c]
+----
+int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf);
+void pcap_freealldevs(pcap_if_t *alldevs);
+----
+
+[source,scala]
+----
+object libpcap:
+  @link("pcap")
+  @extern
+  object functions:
+    import types.*
+    def pcap_findalldevs(alldevsp: Ptr[Ptr[pcap_if]],
+                         errbuf: CString): CInt = extern
+    def pcap_freealldevs(alldevs: Ptr[pcap_if]): Unit = extern
+----
+
+=== Pcap.interfaces
+
+[source,scala]
+----
+object Pcap:
+  def interfaces: IO[List[Interface]] = IO {
+    zone {                                          <1>
+      val p = alloc[Ptr[pcap_if]]()                 <2>
+      val errbuf = makeErrorBuffer                  <3>
+      val rc = pcap_findalldevs(p, errbuf)
+      try
+        if rc == 0 then fromPcapIf(!p)
+        else throw new RuntimeException(
+          "pcap_findalldevs failed with error code " +
+            s"$rc: ${fromCString(errbuf)}")
+      finally
+        pcap_freealldevs(!p)
+    }
+  }
+----
+<1> Constructs a new `Zone` and makes it available as a context parameter
+<2> Allocates a `Ptr[pcap_if]` in the current zone
+<3> Allocates a `CString` in the current zone
+
+=== Zones
+ 
+[.notes]
+* Scala Native supports:
+** Zone allocation, via `alloc`
+** Stack allocation, via `stackalloc`
+** Manual heap allocation, via `malloc`
+* Memory allocated in a zone is freed when execution leaves the scope
+* Idiomatic to take a `Zone` as a context param for temporary memory allocation
+* Must be careful to not leak references to zone allocated memory outside its zone
+
+=== Zones
+
+[source,scala]
+----
+def zone[A](f: Zone ?=> A): A = <1>
+  Zone(z => f(using z))
+
+def makeErrorBuffer(using Zone) =
+  alloc[CChar](256)
+----
+<1> Every Scala 3 native project defines this function 😀 
+
+=== Pcap.interfaces
+
+[source,scala]
+----
+object Pcap:
+  def interfaces: IO[List[Interface]] = IO {
+    zone { <1>
+      val p = alloc[Ptr[pcap_if]]()
+      val errbuf = makeErrorBuffer
+      val rc = pcap_findalldevs(p, errbuf)
+      try
+        if rc == 0 then fromPcapIf(!p)                <1>
+        else throw new RuntimeException(
+          "pcap_findalldevs failed with error code " +
+            s"$rc: ${fromCString(errbuf)}")
+      finally
+        pcap_freealldevs(!p)
+    }
+  }
+----
+<1> Converts a `Ptr[pcap_if]` to a `List[Interface]`
+
+=== Pcap.fromPcapIf
+
+[source,scala]
+----
+private def fromPcapIf(ptr: Ptr[pcap_if]): List[Interface] =
+  val bldr = List.newBuilder[Interface]
+  var ptrPcapIf = ptr
+  while ptrPcapIf ne null do                          <1>
+    val entry = !ptrPcapIf
+    bldr += Interface(                                <2>
+      fromCString(entry.name),
+      fromNullableString(entry.description),
+      fromPcapAddr(entry.addresses),
+      entry.flags)
+    ptrPcapIf = entry.next
+  bldr.result()
+----
+<1> Iterate through internal linked list until encountering a null pointer
+<2> Copy all necessary data out of the allocated structure and in to Scala objects on GC'ed heap
 
 == tcpdump4s: capture
 

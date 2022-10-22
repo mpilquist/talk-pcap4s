@@ -536,16 +536,73 @@ struct pcap_if {
 };</code></pre></div></div>
 <div class="listingblock fragment"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">/** Exposes libpcap API via Scala Native. */
 object libpcap:
-  opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
-  object pcap_if:
-    given _tag: Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
-    extension (struct: pcap_if)
-      def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
-      def name: CString = struct._2
-      def description: CString = struct._3
-      def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
-      def flags: CUnsignedInt = struct._5</code></pre></div></div></div></section><section id="_cstructn"><h2>CStructN</h2><div class="slide-content"><div class="paragraph"><p>TODO</p></div>
-<div class="ulist"><ul><li><p>C-aligned struct of N element types</p></li><li><p>Positional access</p></li><li><p>opaque type + extension method pattern</p></li><li><p>tags</p></li></ul></div></div></section></section>
+  object types:
+    opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+    object pcap_if:
+      given Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+      extension (struct: pcap_if)
+        def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
+        def name: CString = struct._2
+        def description: CString = struct._3
+        def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
+        def flags: CUnsignedInt = struct._5</code></pre></div></div></div></section><section id="_cstructn"><h2>CStructN</h2><div class="slide-content"><div class="ulist"><ul><li><p>C aligned struct of n elements</p></li><li><p>Positional access, not named access (yet)</p></li><li><p>opaque type + extension methods pattern</p><div class="ulist"><ul><li><p><code>Tag</code> instance allows pointer dereferencing
+(necessary because of opaqueness)</p></li><li><p>Can add mutators in addition to accessors</p></li></ul></div></li></ul></div></div></section><section id="_findalldevs"><h2>findalldevs</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-c hljs" data-noescape="true" data-lang="c">int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf);
+void pcap_freealldevs(pcap_if_t *alldevs);</code></pre></div></div>
+<div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">object libpcap:
+  @link("pcap")
+  @extern
+  object functions:
+    import types.*
+    def pcap_findalldevs(alldevsp: Ptr[Ptr[pcap_if]],
+                         errbuf: CString): CInt = extern
+    def pcap_freealldevs(alldevs: Ptr[pcap_if]): Unit = extern</code></pre></div></div></div></section><section id="_pcap_interfaces_4"><h2>Pcap.interfaces</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">object Pcap:
+  def interfaces: IO[List[Interface]] = IO {
+    zone {                                          <i class="conum" data-value="1"></i><b>(1)</b>
+      val p = alloc[Ptr[pcap_if]]()                 <i class="conum" data-value="2"></i><b>(2)</b>
+      val errbuf = makeErrorBuffer                  <i class="conum" data-value="3"></i><b>(3)</b>
+      val rc = pcap_findalldevs(p, errbuf)
+      try
+        if rc == 0 then fromPcapIf(!p)
+        else throw new RuntimeException(
+          "pcap_findalldevs failed with error code " +
+            s"$rc: ${fromCString(errbuf)}")
+      finally
+        pcap_freealldevs(!p)
+    }
+  }</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Constructs a new <code>Zone</code> and makes it available as a context parameter</td></tr><tr><td><i class="conum" data-value="2"></i><b>2</b></td><td>Allocates a <code>Ptr[pcap_if]</code> in the current zone</td></tr><tr><td><i class="conum" data-value="3"></i><b>3</b></td><td>Allocates a <code>CString</code> in the current zone</td></tr></table></div></div></section><section id="_zones"><h2>Zones</h2><div class="slide-content"><div class="ulist notes"><ul><li><p>Scala Native supports:</p><div class="ulist"><ul><li><p>Zone allocation, via <code>alloc</code></p></li><li><p>Stack allocation, via <code>stackalloc</code></p></li><li><p>Manual heap allocation, via <code>malloc</code></p></li></ul></div></li><li><p>Memory allocated in a zone is freed when execution leaves the scope</p></li><li><p>Idiomatic to take a <code>Zone</code> as a context param for temporary memory allocation</p></li><li><p>Must be careful to not leak references to zone allocated memory outside its zone</p></li></ul></div></div></section><section id="_zones_2"><h2>Zones</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def zone[A](f: Zone ?=&gt; A): A = <i class="conum" data-value="1"></i><b>(1)</b>
+  Zone(z =&gt; f(using z))
+
+def makeErrorBuffer(using Zone) =
+  alloc[CChar](256)</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Every Scala 3 native project defines this function 😀</td></tr></table></div></div></section><section id="_pcap_interfaces_5"><h2>Pcap.interfaces</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">object Pcap:
+  def interfaces: IO[List[Interface]] = IO {
+    zone { <i class="conum" data-value="1"></i><b>(1)</b>
+      val p = alloc[Ptr[pcap_if]]()
+      val errbuf = makeErrorBuffer
+      val rc = pcap_findalldevs(p, errbuf)
+      try
+        if rc == 0 then fromPcapIf(!p)                <i class="conum" data-value="1"></i><b>(1)</b>
+        else throw new RuntimeException(
+          "pcap_findalldevs failed with error code " +
+            s"$rc: ${fromCString(errbuf)}")
+      finally
+        pcap_freealldevs(!p)
+    }
+  }</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Converts a <code>Ptr[pcap_if]</code> to a <code>List[Interface]</code></td></tr></table></div></div></section><section id="_pcap_frompcapif"><h2>Pcap.fromPcapIf</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">private def fromPcapIf(ptr: Ptr[pcap_if]): List[Interface] =
+  val bldr = List.newBuilder[Interface]
+  var ptrPcapIf = ptr
+  while ptrPcapIf ne null do                          <i class="conum" data-value="1"></i><b>(1)</b>
+    val entry = !ptrPcapIf
+    bldr += Interface(                                <i class="conum" data-value="2"></i><b>(2)</b>
+      fromCString(entry.name),
+      fromNullableString(entry.description),
+      fromPcapAddr(entry.addresses),
+      entry.flags)
+    ptrPcapIf = entry.next
+  bldr.result()</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Iterate through internal linked list until encountering a null pointer</td></tr><tr><td><i class="conum" data-value="2"></i><b>2</b></td><td>Copy all necessary data out of the allocated structure and in to Scala objects on GC&#8217;ed heap</td></tr></table></div></div></section></section>
 <section id="_tcpdump4s_capture"><h2>tcpdump4s: capture</h2><div class="slide-content"><div class="paragraph"><p>TODO</p></div></div></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;
   // user needs to explicitly say he wants CSS color to override otherwise we might break custom css or theme (#226)

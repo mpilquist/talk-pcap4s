@@ -2,13 +2,17 @@
   text-transform: none;
 }
 
+.reveal h1 {
+  font-size: 1.8em;
+}
+
 .reveal table.tableblock th, .reveal table.tableblock td {
   padding: 0.05em 0.3em 0.05em 0.3em;
   font-size: 0.6em;
 }
 
 .reveal .colist > table td {
-  font-size: 0.8em;
+  font-size: 0.5em;
 }
 
 .conum[data-value] {
