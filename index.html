@@ -414,8 +414,7 @@ ul.byline li + li {
   margin-top: 0.25em;
 }
 </style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css"><link rel="stylesheet" href="css/presentation.css"></head><body><div class="reveal"><div class="slides"><section class="title" data-state="title"><h1>Cross platform applications with Scala Native</h1><div class="preamble"><div class="imageblock"><img src="images/fs2-logo.png" alt="fs2 logo"></div></div></section>
-<section id="_agenda"><h2>Agenda</h2><div class="slide-content"><div class="ulist"><ul><li><p>hexdump4s</p></li><li><p>intro to scala native</p></li><li><p>udp-replay</p></li><li><p>libpcap</p></li><li><p>tcpdump4s</p></li></ul></div></div></section>
-<section><section id="_hexdump4s"><h2>hexdump4s</h2><div class="slide-content"><div class="ulist"><ul><li><p>show repl output</p></li><li><p>build command line app</p></li></ul></div></div></section><section id="_hex_dumps"><h2>Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/print-hex-dump.png" alt="print hex dump"></div></div></section><section id="_cli_hex_dumps"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">//&gt; using scala "3.2.0"
+<section><section id="_agenda"><h2>Agenda</h2><div class="slide-content"><div class="ulist"><ul><li><p>hexdump4s</p></li><li><p>intro to scala native</p></li><li><p>udp-replay</p></li><li><p>libpcap</p></li><li><p>tcpdump4s</p></li></ul></div></div></section><section id="_hex_dumps"><h2>Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/print-hex-dump.png" alt="print hex dump"></div></div></section><section id="_cli_hex_dumps"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">//&gt; using scala "3.2.0"
 //&gt; using lib "org.scodec::scodec-bits::1.1.34"
 //&gt; using lib "com.monovore::decline::2.3.1"</code></pre></div></div></div></section><section id="_cli_hex_dumps_2"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">val command = Command(
   name = "hexdump4s",
@@ -466,7 +465,8 @@ Options and flags:
 ________________________________________________________
 Executed in  810.57 millis    fish           external
    usr time  925.87 millis    0.24 millis  925.64 millis
-   sys time  157.68 millis    6.49 millis  151.19 millis</code></pre></div></div></div></section><section id="_packaging_as_native_app"><h2>Packaging as Native App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
+   sys time  157.68 millis    6.49 millis  151.19 millis</code></pre></div></div></div></section><section id="_packaging_as_native_app"><h2>Packaging as Native App</h2><div class="slide-content"><div class="paragraph"><p>Optimizing ahead-of-time compiler via LLVM</p></div>
+<div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
 
 ➜  du -h hexdump4s
 8.3M	hexdump4s
@@ -476,7 +476,77 @@ Executed in  810.57 millis    fish           external
 ________________________________________________________
 Executed in   61.50 millis    fish           external
    usr time   35.84 millis    0.20 millis   35.63 millis
-   sys time   20.09 millis    5.10 millis   14.99 millis</code></pre></div></div></div></section></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
+   sys time   20.09 millis    5.10 millis   14.99 millis</code></pre></div></div></div></section><section id="_packaging_as_graalvm_native_image"><h2>Packaging as GraalVM Native Image</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli package --native-image hexdump4s.sc -f -- --no-fallback
+
+➜  du -h hexdump4s
+ 17M	hexdump4s
+
+➜  time ./hexdump4s LICENSE &gt; /dev/null
+
+________________________________________________________
+Executed in  156.47 millis    fish           external
+   usr time  127.23 millis    0.06 millis  127.17 millis
+   sys time   19.13 millis    1.09 millis   18.04 millis</code></pre></div></div></div></section></section>
+<section id="_scala_native"><h2>Scala Native</h2><div class="slide-content"><div class="ulist"><ul><li><p>Ahead of time compiler for Scala</p></li><li><p>Supports structs, stack &amp; heap allocation, and pointers</p></li><li><p>Painless interop with native code</p></li><li><p>No multithreading (yet?)</p></li><li><p>Supports Scala 2.11, 2.12, 2.13, and 3</p></li></ul></div></div></section>
+<section><section id="_tcpdump4s"><div class="slide-content"><div class="imageblock"><img src="images/tcpdump4s.png" alt="tcpdump4s"></div></div></section><section id="_tcpdump4s_command_line_interface"><h2>tcpdump4s: Command Line Interface</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">val command = Command("tcpdump4s", "Network packet captures") {
+  val showInterfacesOpt = Opts.flag("interfaces", "shows network interfaces supporting packet capture")
+                              .as(showInterfaces)
+
+  val captureOpt =
+    val interface = Opts.option[String]("interface", short = "i", help = "name of the interface to capture on")
+    val expression = Opts.argument[String](metavar = "expression").orNone
+    (interface, expression).mapN(capture)
+
+  showInterfacesOpt orElse captureOpt
+}
+
+def showInterfaces: IO[Unit] = ???
+def capture(interface: String,
+            expression: Option[String]): IO[Unit] = ???</code></pre></div></div></div></section><section id="_tcpdump4s_main"><h2>tcpdump4s main</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">object Main extends IOApp: <i class="conum" data-value="1"></i><b>(1)</b>
+  def run(args: List[String]) =
+    command.parse(args) match
+      case Left(help) =&gt; IO(System.err.println(help))
+                           .as(ExitCode(-1))
+      case Right(prg) =&gt; prg.as(ExitCode.Success)</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Cats Effect for Scala Native ships with an <code>IOApp</code> runtime that uses a single threaded event loop</td></tr></table></div></div></section></section>
+<section><section id="_showinterfaces"><h2>showInterfaces</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def showInterfaces: IO[Unit] = ???
+  // Get all interfaces
+  // Filter to only the up &amp; running ones
+  // Print the name of the interface and each assigned address</code></pre></div></div></div></section><section id="_pcap_interfaces"><h2>Pcap.interfaces</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">/** Provides a high level, functional interface for libpcap. */
+object Pcap:
+  case class Interface(
+    name: String,
+    description: String,
+    addresses: List[Address],
+    flags: InterfaceFlags)
+
+  def interfaces: IO[List[Interface]] = ???</code></pre></div></div></div></section><section id="_pcap_interfaces_2"><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-c hljs" data-noescape="true" data-lang="c">#include &lt;pcap/pcap.h&gt;
+
+char errbuf[PCAP_ERRBUF_SIZE];
+
+int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf);
+void pcap_freealldevs(pcap_if_t *alldevs);</code></pre></div></div></div></section><section id="_pcap_interfaces_3"><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-c hljs" data-noescape="true" data-lang="c">typedef struct pcap_if pcap_if_t;
+
+struct pcap_if {
+	struct pcap_if *next;
+	char *name;		/* name to hand to "pcap_open_live()" */
+	char *description;	/* textual description of interface, or NULL */
+	struct pcap_addr *addresses;
+	bpf_u_int32 flags;	/* PCAP_IF_ interface flags */
+};</code></pre></div></div>
+<div class="listingblock fragment"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">/** Exposes libpcap API via Scala Native. */
+object libpcap:
+  opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+  object pcap_if:
+    given _tag: Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+    extension (struct: pcap_if)
+      def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
+      def name: CString = struct._2
+      def description: CString = struct._3
+      def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
+      def flags: CUnsignedInt = struct._5</code></pre></div></div></div></section><section id="_cstructn"><h2>CStructN</h2><div class="slide-content"><div class="paragraph"><p>TODO</p></div>
+<div class="ulist"><ul><li><p>C-aligned struct of N element types</p></li><li><p>Positional access</p></li><li><p>opaque type + extension method pattern</p></li><li><p>tags</p></li></ul></div></div></section></section>
+<section id="_tcpdump4s_capture"><h2>tcpdump4s: capture</h2><div class="slide-content"><div class="paragraph"><p>TODO</p></div></div></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;
   // user needs to explicitly say he wants CSS color to override otherwise we might break custom css or theme (#226)
   if (!(slide.classList.contains('canvas') || slide.classList.contains('background'))) return;

@@ -16,11 +16,6 @@ image::images/fs2-logo.png[]
 - libpcap
 - tcpdump4s
 
-== hexdump4s
-
-- show repl output
-- build command line app
-
 === Hex Dumps
 
 image::images/print-hex-dump.png[]
@@ -124,6 +119,8 @@ Executed in  810.57 millis    fish           external
 
 === Packaging as Native App
 
+Optimizing ahead-of-time compiler via LLVM
+
 [source]
 ----
 ➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
@@ -138,3 +135,150 @@ Executed in   61.50 millis    fish           external
    usr time   35.84 millis    0.20 millis   35.63 millis
    sys time   20.09 millis    5.10 millis   14.99 millis
 ----
+
+=== Packaging as GraalVM Native Image
+
+[source]
+----
+➜  scala-cli package --native-image hexdump4s.sc -f -- --no-fallback
+
+➜  du -h hexdump4s
+ 17M	hexdump4s
+
+➜  time ./hexdump4s LICENSE > /dev/null
+
+________________________________________________________
+Executed in  156.47 millis    fish           external
+   usr time  127.23 millis    0.06 millis  127.17 millis
+   sys time   19.13 millis    1.09 millis   18.04 millis
+----
+
+== Scala Native
+
+- Ahead of time compiler for Scala
+- Supports structs, stack & heap allocation, and pointers
+- Painless interop with native code
+- No multithreading (yet?)
+- Supports Scala 2.11, 2.12, 2.13, and 3
+
+[%notitle]
+== tcpdump4s
+
+image::images/tcpdump4s.png[]
+
+=== tcpdump4s: Command Line Interface
+
+[source,scala]
+----
+val command = Command("tcpdump4s", "Network packet captures") {
+  val showInterfacesOpt = Opts.flag("interfaces", "shows network interfaces supporting packet capture")
+                              .as(showInterfaces)
+
+  val captureOpt =
+    val interface = Opts.option[String]("interface", short = "i", help = "name of the interface to capture on")
+    val expression = Opts.argument[String](metavar = "expression").orNone
+    (interface, expression).mapN(capture)
+
+  showInterfacesOpt orElse captureOpt
+}
+
+def showInterfaces: IO[Unit] = ???
+def capture(interface: String,
+            expression: Option[String]): IO[Unit] = ???
+----
+
+=== tcpdump4s main
+
+[source,scala]
+----
+object Main extends IOApp: <1>
+  def run(args: List[String]) =
+    command.parse(args) match
+      case Left(help) => IO(System.err.println(help))
+                           .as(ExitCode(-1))
+      case Right(prg) => prg.as(ExitCode.Success)
+----
+<1> Cats Effect for Scala Native ships with an `IOApp` runtime that uses a single threaded event loop
+
+== showInterfaces
+
+[source,scala]
+----
+def showInterfaces: IO[Unit] = ???
+  // Get all interfaces
+  // Filter to only the up & running ones
+  // Print the name of the interface and each assigned address
+----
+
+=== Pcap.interfaces
+
+[source,scala]
+----
+/** Provides a high level, functional interface for libpcap. */
+object Pcap:
+  case class Interface(
+    name: String,
+    description: String, 
+    addresses: List[Address],
+    flags: InterfaceFlags)
+
+  def interfaces: IO[List[Interface]] = ???
+----
+
+[%notitle]
+=== Pcap.interfaces
+
+[source,c]
+----
+#include <pcap/pcap.h>
+
+char errbuf[PCAP_ERRBUF_SIZE];
+
+int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf);
+void pcap_freealldevs(pcap_if_t *alldevs);
+----
+
+[%notitle]
+=== Pcap.interfaces
+
+[source,c]
+----
+typedef struct pcap_if pcap_if_t;
+
+struct pcap_if {
+	struct pcap_if *next;
+	char *name;		/* name to hand to "pcap_open_live()" */
+	char *description;	/* textual description of interface, or NULL */
+	struct pcap_addr *addresses;
+	bpf_u_int32 flags;	/* PCAP_IF_ interface flags */
+};
+----
+
+[%step]
+[source,scala]
+----
+/** Exposes libpcap API via Scala Native. */
+object libpcap:
+  opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+  object pcap_if:
+    given _tag: Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+    extension (struct: pcap_if)
+      def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
+      def name: CString = struct._2
+      def description: CString = struct._3
+      def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
+      def flags: CUnsignedInt = struct._5
+----
+
+=== CStructN
+
+TODO
+
+- C-aligned struct of N element types
+- Positional access
+- opaque type + extension method pattern
+- tags
+
+== tcpdump4s: capture
+
+TODO
