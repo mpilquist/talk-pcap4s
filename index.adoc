@@ -566,3 +566,25 @@ def capture(interface: String, expression: Option[String]): IO[Unit] =
         .compile.drain.as(ExitCode.Success)
     }
 ----
+
+== tcpdump4s
+
+[source]
+----
+➜  cat build.scala
+//> using scala "3.2.0"
+//> using platform "scala-native"
+//> using repository "sonatype-s01:snapshots"
+//> using packaging.output "tcpdump4s"
+//> using lib "com.comcast::ip4s-core::3.2.0"
+//> using lib "co.fs2::fs2-protocols::3.3.0"
+//> using lib "com.armanbilge::decline::2.2.1-SNAPSHOT"
+
+➜  scala-cli package . -f
+Wrote /Users/mpilquist/Development/oss/tcpdump4s/tcpdump4s, run it with
+  ./tcpdump4s
+----
+
+=== tcpdump4s
+
+image::images/tcpdump4s-sample-output.png[]
