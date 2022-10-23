@@ -260,14 +260,15 @@ struct pcap_if {
 /** Exposes libpcap API via Scala Native. */
 object libpcap:
   object types:
-    opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+    // Recursive types disallowed so model next as Ptr[Byte]
+    opaque type pcap_if = CStruct5[Ptr[Byte], CString, CString, Ptr[pcap_addr], CUnsignedInt]
     object pcap_if:
-      given Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[Byte], CUnsignedInt]
+      given Tag[pcap_if] = Tag.materializeCStruct5Tag[Ptr[Byte], CString, CString, Ptr[pcap_addr], CUnsignedInt]
       extension (struct: pcap_if)
         def next: Ptr[pcap_if] = struct._1.asInstanceOf[Ptr[pcap_if]]
         def name: CString = struct._2
         def description: CString = struct._3
-        def addresses: Ptr[pcap_addr] = struct._4.asInstanceOf[Ptr[pcap_addr]]
+        def addresses: Ptr[pcap_addr] = struct._4
         def flags: CUnsignedInt = struct._5
 ----
 
@@ -389,6 +390,179 @@ private def fromPcapIf(ptr: Ptr[pcap_if]): List[Interface] =
 <1> Iterate through internal linked list until encountering a null pointer
 <2> Copy all necessary data out of the allocated structure and in to Scala objects on GC'ed heap
 
-== tcpdump4s: capture
+=== showInterfaces
 
-TODO
+[source,scala]
+----
+def showInterfaces: IO[Unit] = ???
+  // Get all interfaces
+  // Filter to only the up & running ones
+  // Print the name of the interface and each assigned address
+----
+
+=== showInterfaces
+
+[source,scala]
+----
+def showInterfaces: IO[Unit] =
+  Pcap.interfaces.flatMap { interfaces =>
+    interfaces
+      .filter(i => i.flags.isUp && i.flags.isRunning)
+      .traverse_ { interface =>
+        IO.println(interface.name) *>
+          interface.addresses.traverse_ { addr =>
+            IO.println(s"  ${addr.cidr}")
+          }
+      }
+  }
+----
+
+
+
+== capture
+
+[source,scala]
+----
+def capture(interface: String, expression: Option[String]): IO[Unit] =
+  // Open stream of packets on target interface
+  // Decode & print each packet
+----
+
+=== Pcap.livePackets
+
+[source,scala]
+----
+def livePackets(
+  device: String,
+  promiscuousMode: Boolean,
+  filter: Option[String]
+): Resource[IO, (LinkType, Stream[IO, TimeStamped[ByteVector]])] =
+  // Open device for live capture
+  // Filter captured packets by bpf expression
+  // Return the link type of the interface
+  // and a stream of packets
+----
+
+=== Pcap.openLive
+
+[source,c]
+----
+pcap_t *pcap_open_live(const char *device, int snaplen,
+  int promisc, int to_ms, char *errbuf);
+----
+
+[source,scala]
+----
+object types:
+  opaque type pcap = CStruct0
+  object pcap:
+    given Tag[pcap] = Tag.materializeCStruct0Tag
+
+object functions:
+  def pcap_open_live(device: CString, snaplen: CInt,
+    promisc: CInt, to_ms: CInt, errbuf: CString
+  ): Ptr[pcap] = extern
+----
+
+=== Pcap.openLive
+
+[source,scala]
+----
+def openLive(
+  device: String, promiscuousMode: Boolean
+): Resource[IO, Pcap] =
+  Resource.make(IO {
+    zone {
+      val errbuf = makeErrorBuffer
+      val p = pcap_open_live(toCString(device), 65535,
+        if promiscuousMode then 1 else 0, 100,
+        errbuf)
+      if p eq null then throw new RuntimeException(
+        "pcap_open_live failed with error: " +
+          fromCString(errbuf))
+      else new Pcap(p)
+    }
+  })(_.close)
+----
+
+=== Pcap class
+
+[source,scala]
+----
+class Pcap private (p: Ptr[pcap]):
+  val linkType: Int = pcap_datalink(p)
+  def setFilter(s: String): IO[Unit] = ???
+  def next: IO[TimeStamped[ByteVector]] = ???
+----
+
+=== Pcap.setFilter
+
+[source,scala]
+----
+class Pcap private (p: Ptr[pcap]):
+  def setFilter(s: String): IO[Unit] = IO {
+    zone {
+      val fp = alloc[bpf_program]()
+      var rc = pcap_compile(p, fp, toCString(s), 1, -1.toUInt)
+      if rc != 0 then throw new RuntimeException(
+        "pcap_compile failed with error code: " + rc)
+      rc = pcap_setfilter(p, fp)
+      if rc != 0 then throw new RuntimeException(
+        "pcap_setfilter failed with error code: " + rc)
+    }
+  }
+----
+
+=== Pcap.next
+
+[source,scala]
+----
+class Pcap private (p: Ptr[pcap]):
+  def next: IO[TimeStamped[ByteVector]] = IO {
+    zone {
+      val ppHdr = alloc[Ptr[pcap_pkthdr]]()
+      val ppData = alloc[Ptr[Byte]]()
+      var rc = 0
+      while rc == 0 do rc = pcap_next_ex(p, ppHdr, ppData)
+      if rc != 1 then throw new RuntimeException(
+        "pcap_next_ex failed with error code: " + rc)
+      val pHdr = !ppHdr
+      val ts = (!pHdr).ts.tv_sec.toInt.seconds +
+               (!pHdr).ts.tv_usec.toInt.microseconds
+      val size = (!pHdr).caplen.toInt
+      TimeStamped(ts, ByteVector.fromPtr(!ppData, size))
+    }
+  }
+----
+
+=== Pcap.livePackets
+
+[source,scala]
+----
+def livePackets(
+  device: String,
+  promiscuousMode: Boolean,
+  filter: Option[String]
+): Resource[IO, (LinkType, Stream[IO, TimeStamped[ByteVector]])] =
+  Pcap.openLive(device, promiscuousMode)
+    .evalTap(p =>
+      filter.map(fltr => p.setFilter(fltr)).getOrElse(IO.unit))
+    .map(p =>
+      LinkType.fromLong(p.linkType) -> Stream.repeatEval(p.next))
+----
+
+=== capture
+
+[source,scala]
+----
+def capture(interface: String, expression: Option[String]): IO[Unit] =
+  Pcap.livePackets(interface, false, expression)
+    .use { (linkType, packets) =>
+      packets
+        .map(_.map(b =>
+          DecodedPacket.decode(b, linkType).require))
+        .foreach(t =>
+          IO.println(t.value.render(t.time)) *> IO.println(""))
+        .compile.drain.as(ExitCode.Success)
+    }
+----
