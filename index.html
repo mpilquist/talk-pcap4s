@@ -413,10 +413,9 @@ ul.byline {
 ul.byline li + li {
   margin-top: 0.25em;
 }
-</style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css"><link rel="stylesheet" href="css/presentation.css"></head><body><div class="reveal"><div class="slides"><section class="title" data-state="title"><h1>Cross platform applications with Scala Native</h1><div class="preamble"><div class="imageblock"><img src="images/fs2-logo.png" alt="fs2 logo"></div></div></section>
-<section><section id="_agenda"><h2>Agenda</h2><div class="slide-content"><div class="ulist"><ul><li><p>hexdump4s</p></li><li><p>intro to scala native</p></li><li><p>udp-replay</p></li><li><p>libpcap</p></li><li><p>tcpdump4s</p></li></ul></div></div></section><section id="_hex_dumps"><h2>Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/print-hex-dump.png" alt="print hex dump"></div></div></section><section id="_cli_hex_dumps"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">//&gt; using scala "3.2.0"
+</style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css"><link rel="stylesheet" href="css/presentation.css"></head><body><div class="reveal"><div class="slides"><section class="title" data-state="title"><h1>Cross platform applications with Scala Native</h1></section><section><section id="_hex_dumps"><h2>Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/print-hex-dump.png" alt="print hex dump"></div></div></section><section id="_command_line_hex_dumps"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">//&gt; using scala "3.2.0"
 //&gt; using lib "org.scodec::scodec-bits::1.1.34"
-//&gt; using lib "com.monovore::decline::2.3.1"</code></pre></div></div></div></section><section id="_cli_hex_dumps_2"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">val command = Command(
+//&gt; using lib "com.monovore::decline::2.3.1"</code></pre></div></div></div></section><section id="_command_line_hex_dumps_2"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">val command = Command(
   name = "hexdump4s",
   header = "Prints a hex dump of a file"
 ) {
@@ -431,7 +430,7 @@ ul.byline li + li {
     "no-color", help = "Disables color ouptut").orFalse
   val file = Opts.argument[Path](metavar = "file").orNone
   (offset, length, noColor, file).tupled
-}</code></pre></div></div></div></section><section id="_cli_hex_dumps_3"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">command.parse(args) match
+}</code></pre></div></div></div></section><section id="_command_line_hex_dumps_3"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">command.parse(args) match
   case Left(help) =&gt;
     System.err.println(help)
   case Right((offset, limit, noColor, file)) =&gt;
@@ -444,7 +443,7 @@ ul.byline li + li {
       .withAnsi(!noColor)
       .withAddressOffset(offset.toInt)
       .withLengthLimit(limit.getOrElse(Long.MaxValue))
-      .print(data)</code></pre></div></div></div></section><section id="_cli_hex_dumps_4"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli hexdump4s.sc -- -help
+      .print(data)</code></pre></div></div></div></section><section id="_command_line_hex_dumps_4"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  scala-cli hexdump4s.sc -- -help
 Usage: hexdump4s [--offset &lt;count&gt;] [--length &lt;count&gt;] [--no-color] [&lt;file&gt;]
 
 Prints a hex dump of a file
@@ -457,16 +456,16 @@ Options and flags:
     --length &lt;count&gt;, -n &lt;count&gt;
         Number of bytes to dump
     --no-color
-        Disables color ouptut</code></pre></div></div></div></section><section id="_cli_hex_dumps_5"><h2>CLI Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/hexdump-cli.png" alt="hexdump cli"></div></div></section><section id="_packaging_as_jvm_app"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli package hexdump4s.sc -o hexdump4s -f --assembly
+        Disables color ouptut</code></pre></div></div></div></section><section id="_command_line_hex_dumps_5"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/hexdump-cli.png" alt="hexdump cli"></div></div></section><section id="_packaging_as_jvm_app"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  scala-cli package hexdump4s.sc -o hexdump4s -f --assembly
 
 ➜  du -h hexdump4s
- 17M	hexdump4s</code></pre></div></div></div></section><section id="_packaging_as_jvm_app_2"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  time ./hexdump4s LICENSE &gt; /dev/null
+ 17M	hexdump4s</code></pre></div></div></div></section><section id="_packaging_as_jvm_app_2"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  time ./hexdump4s LICENSE &gt; /dev/null
 
 ________________________________________________________
 Executed in  810.57 millis    fish           external
    usr time  925.87 millis    0.24 millis  925.64 millis
    sys time  157.68 millis    6.49 millis  151.19 millis</code></pre></div></div></div></section><section id="_packaging_as_native_app"><h2>Packaging as Native App</h2><div class="slide-content"><div class="paragraph"><p>Optimizing ahead-of-time compiler via LLVM</p></div>
-<div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
+<div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
 
 ➜  du -h hexdump4s
 8.3M	hexdump4s
@@ -476,7 +475,7 @@ Executed in  810.57 millis    fish           external
 ________________________________________________________
 Executed in   61.50 millis    fish           external
    usr time   35.84 millis    0.20 millis   35.63 millis
-   sys time   20.09 millis    5.10 millis   14.99 millis</code></pre></div></div></div></section><section id="_packaging_as_graalvm_native_image"><h2>Packaging as GraalVM Native Image</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  scala-cli package --native-image hexdump4s.sc -f -- --no-fallback
+   sys time   20.09 millis    5.10 millis   14.99 millis</code></pre></div></div></div></section><section id="_packaging_as_graalvm_native_image"><h2>Packaging as GraalVM Native Image</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  scala-cli package --native-image hexdump4s.sc -f -- --no-fallback
 
 ➜  du -h hexdump4s
  17M	hexdump4s
@@ -699,7 +698,7 @@ object functions:
           IO.println(t.value.render(t.time)) *&gt; IO.println(""))
         .compile.drain.as(ExitCode.Success)
     }</code></pre></div></div></div></section></section>
-<section><section id="_tcpdump4s_2"><h2>tcpdump4s</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-none hljs" data-noescape="true">➜  cat build.scala
+<section><section id="_tcpdump4s_2"><h2>tcpdump4s</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  cat build.scala
 //&gt; using scala "3.2.0"
 //&gt; using platform "scala-native"
 //&gt; using repository "sonatype-s01:snapshots"
@@ -710,7 +709,8 @@ object functions:
 
 ➜  scala-cli package . -f
 Wrote /Users/mpilquist/Development/oss/tcpdump4s/tcpdump4s, run it with
-  ./tcpdump4s</code></pre></div></div></div></section><section id="_tcpdump4s_3"><h2>tcpdump4s</h2><div class="slide-content"><div class="imageblock"><img src="images/tcpdump4s-sample-output.png" alt="tcpdump4s sample output"></div></div></section></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
+  ./tcpdump4s</code></pre></div></div></div></section><section id="_tcpdump4s_3"><h2>tcpdump4s</h2><div class="slide-content"><div class="imageblock"><img src="images/tcpdump4s-sample-output.png" alt="tcpdump4s sample output"></div></div></section></section>
+<section><section id="_scala_native_challenges"><h2>Scala Native Challenges</h2><div class="slide-content"><div class="ulist"><ul><li><p>Build Complexity</p></li><li><p>Library Support</p></li></ul></div></div></section><section id="_scala_native_challenges_answered"><h2>Scala Native Challenges Answered</h2><div class="slide-content"><div class="ulist"><ul><li><p>Build Complexity</p><div class="ulist"><ul><li><p>scala-cli simplifies experimentation</p></li><li><p>sbt-typelevel simplifies SBT builds</p></li><li><p>Scala Native supports 2.11, 2.12, 2.13, and 3</p></li></ul></div></li></ul></div></div></section><section id="_scala_native_challenges_answered_2"><h2>Scala Native Challenges Answered</h2><div class="slide-content"><div class="ulist"><ul><li><p>Library Support</p><div class="ulist"><ul><li><p>Typelevel ecosystem has embraced Native support</p></li><li><p>fs2-io provides cross platform APIs for TCP, TLS, file I/O</p></li><li><p>epollcat provides epoll based cats-effect runtime</p></li><li><p>http4s, skunk, and more cross compile to native with little/no native specific code</p></li></ul></div></li></ul></div></div></section></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;
   // user needs to explicitly say he wants CSS color to override otherwise we might break custom css or theme (#226)
   if (!(slide.classList.contains('canvas') || slide.classList.contains('background'))) return;
@@ -935,8 +935,7 @@ Reveal.addEventListener('ready', function () {
 Reveal.addEventListener('resize', function () {
   layoutSlideContents(960, 700)
 });</script><link rel="stylesheet" href="css/solarized-dark.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.3/highlight.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.3/languages/scala.min.js"></script>
+<script src="highlight/highlight.min.js"></script>
 
 <script>
 

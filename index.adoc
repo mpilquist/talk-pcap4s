@@ -1,26 +1,17 @@
 = Cross platform applications with Scala Native
 :source-highlighter: highlightjs
-:highlightjs-languages: scala
 :highlightjs-theme: css/solarized-dark.css
+:highlightjsdir: highlight
 :revealjs_theme: moon
 :revealjs_hash: true
 :customcss: css/presentation.css
 :icons: font
 
-image::images/fs2-logo.png[]
-
-== Agenda
-- hexdump4s
-- intro to scala native
-- udp-replay
-- libpcap
-- tcpdump4s
-
-=== Hex Dumps
+== Hex Dumps
 
 image::images/print-hex-dump.png[]
 
-=== CLI Hex Dumps
+=== Command Line Hex Dumps
 
 [source,scala]
 ----
@@ -29,7 +20,7 @@ image::images/print-hex-dump.png[]
 //> using lib "com.monovore::decline::2.3.1"
 ----
 
-=== CLI Hex Dumps
+=== Command Line Hex Dumps
 
 [source,scala]
 ----
@@ -51,7 +42,7 @@ val command = Command(
 }
 ----
 
-=== CLI Hex Dumps
+=== Command Line Hex Dumps
 
 [source,scala]
 ----
@@ -71,9 +62,9 @@ command.parse(args) match
       .print(data)
 ----
 
-=== CLI Hex Dumps
+=== Command Line Hex Dumps
 
-[source]
+[source,shell]
 ----
 ➜  scala-cli hexdump4s.sc -- -help
 Usage: hexdump4s [--offset <count>] [--length <count>] [--no-color] [<file>]
@@ -91,13 +82,13 @@ Options and flags:
         Disables color ouptut
 ----
 
-=== CLI Hex Dumps
+=== Command Line Hex Dumps
 
 image::images/hexdump-cli.png[]
 
 === Packaging as JVM App
 
-[source]
+[source,shell]
 ----
 ➜  scala-cli package hexdump4s.sc -o hexdump4s -f --assembly
 
@@ -107,7 +98,7 @@ image::images/hexdump-cli.png[]
 
 === Packaging as JVM App
 
-[source]
+[source,shell]
 ----
 ➜  time ./hexdump4s LICENSE > /dev/null
 
@@ -121,7 +112,7 @@ Executed in  810.57 millis    fish           external
 
 Optimizing ahead-of-time compiler via LLVM
 
-[source]
+[source,shell]
 ----
 ➜  scala-cli package --native hexdump4s.sc -o hexdump4s -f
 
@@ -138,7 +129,7 @@ Executed in   61.50 millis    fish           external
 
 === Packaging as GraalVM Native Image
 
-[source]
+[source,shell]
 ----
 ➜  scala-cli package --native-image hexdump4s.sc -f -- --no-fallback
 
@@ -569,7 +560,7 @@ def capture(interface: String, expression: Option[String]): IO[Unit] =
 
 == tcpdump4s
 
-[source]
+[source,shell]
 ----
 ➜  cat build.scala
 //> using scala "3.2.0"
@@ -588,3 +579,23 @@ Wrote /Users/mpilquist/Development/oss/tcpdump4s/tcpdump4s, run it with
 === tcpdump4s
 
 image::images/tcpdump4s-sample-output.png[]
+
+== Scala Native Challenges
+
+* Build Complexity
+* Library Support
+
+=== Scala Native Challenges Answered
+
+* Build Complexity
+** scala-cli simplifies experimentation
+** sbt-typelevel simplifies SBT builds
+** Scala Native supports 2.11, 2.12, 2.13, and 3
+
+=== Scala Native Challenges Answered
+
+* Library Support
+** Typelevel ecosystem has embraced Native support
+** fs2-io provides cross platform APIs for TCP, TLS, file I/O
+** epollcat provides epoll based cats-effect runtime
+** http4s, skunk, and more cross compile to native with little/no native specific code
