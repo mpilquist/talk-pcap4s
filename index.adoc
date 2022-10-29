@@ -599,3 +599,12 @@ image::images/tcpdump4s-sample-output.png[]
 ** fs2-io provides cross platform APIs for TCP, TLS, file I/O
 ** epollcat provides epoll based cats-effect runtime
 ** http4s, skunk, and more cross compile to native with little/no native specific code
+
+=== Links
+
+*** https://github.com/scodec/hexdump4s
+*** https://github.com/mpilquist/tcpdump4s
+*** https://github.com/typelevel/fs2
+*** https://www.scala-native.org
+*** https://typelevel.org/blog/2022/09/19/typelevel-native.html
+
