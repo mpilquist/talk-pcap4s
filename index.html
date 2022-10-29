@@ -427,7 +427,7 @@ ul.byline li + li {
     "length", short = "n", metavar = "count",
     help = "Number of bytes to dump").orNone
   val noColor = Opts.flag(
-    "no-color", help = "Disables color ouptut").orFalse
+    "no-color", help = "Disables color output").orFalse
   val file = Opts.argument[Path](metavar = "file").orNone
   (offset, length, noColor, file).tupled
 }</code></pre></div></div></div></section><section id="_command_line_hex_dumps_3"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">command.parse(args) match
@@ -456,7 +456,7 @@ Options and flags:
     --length &lt;count&gt;, -n &lt;count&gt;
         Number of bytes to dump
     --no-color
-        Disables color ouptut</code></pre></div></div></div></section><section id="_command_line_hex_dumps_5"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/hexdump-cli.png" alt="hexdump cli"></div></div></section><section id="_packaging_as_jvm_app"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  scala-cli package hexdump4s.sc -o hexdump4s -f --assembly
+        Disables color output</code></pre></div></div></div></section><section id="_command_line_hex_dumps_5"><h2>Command Line Hex Dumps</h2><div class="slide-content"><div class="imageblock"><img src="images/hexdump-cli.png" alt="hexdump cli"></div></div></section><section id="_packaging_as_jvm_app"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  scala-cli package hexdump4s.sc -o hexdump4s -f --assembly
 
 ➜  du -h hexdump4s
  17M	hexdump4s</code></pre></div></div></div></section><section id="_packaging_as_jvm_app_2"><h2>Packaging as JVM App</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-shell hljs" data-noescape="true" data-lang="shell">➜  time ./hexdump4s LICENSE &gt; /dev/null
